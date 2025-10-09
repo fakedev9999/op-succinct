@@ -1,6 +1,35 @@
 default:
   @just --list
 
+# Run confidence tests with real contracts (simulation mode)
+test-confidence:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    echo "Running confidence tests with real contracts..."
+    echo "Note: Set FACTORY_ADDRESS and VERIFIER_ADDRESS to test with deployed contracts"
+    
+    cargo test --test confidence --release -- --nocapture --ignored
+
+# Run quick proof generation test for a block range
+test-proof-range start_block end_block:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    echo "Testing proof generation for blocks {{start_block}} to {{end_block}}..."
+    
+    TEST_START_BLOCK={{start_block}} TEST_END_BLOCK={{end_block}} \
+        cargo test test_proof_generation_for_block_range --test confidence --release -- --nocapture --ignored
+
+# Validate contract vkeys match program vkeys
+test-vkey-validation:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    echo "Validating contract VKeys..."
+    
+    cargo test test_contract_vkey_validation --test confidence --release -- --nocapture --ignored
+
 # Upgrade the OPSuccinct Fault Dispute Game implementation.
 upgrade-fault-dispute-game:
     #!/usr/bin/env bash

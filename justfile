@@ -41,6 +41,16 @@ cost-estimator *args='':
   # Output the data required for the ZKVM execution.
   echo "$L1_HEAD $L2_OUTPUT_ROOT $L2_CLAIM $L2_BLOCK_NUMBER $L2_CHAIN_ID"
 
+# Run confidence tests for proof generation and verification
+test-confidence:
+  #!/usr/bin/env bash
+  cd fault-proof && just test-confidence
+
+# Validate contract vkeys match program vkeys
+test-vkey-validation:
+  #!/usr/bin/env bash
+  cd fault-proof && just test-vkey-validation
+
 upgrade-l2oo l1_rpc admin_pk etherscan_api_key="":
   #!/usr/bin/env bash
   VERIFY=""
