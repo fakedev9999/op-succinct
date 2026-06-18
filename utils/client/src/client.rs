@@ -33,11 +33,22 @@ where
     output_preimage[96..128].try_into().map_err(OracleProviderError::SliceConversion)
 }
 
-// Sourced from kona/crates/driver/src/core.rs with modifications to use the L2 provider's caching
-// system. After each block execution, we update the L2 provider's caches (header_by_number,
-// block_by_number, system_config_by_number, l2_block_info_by_number) with the new block data. This
-// ensures subsequent lookups for this block number can be served directly from cache rather than
-// requiring oracle queries.
+// Sourced from the `kona-driver` crate's `Driver::advance_to_target`
+// (`kona-client/v1.2.14`, `crates/proof/driver/src/core.rs`), reimplemented as a free function
+// over `&mut Driver` with three op-succinct-specific deltas:
+//
+//   - SP1 zkVM cycle-tracker instrumentation: under `#[cfg(target_os = "zkvm")]`, the loop emits
+//     `cycle-tracker-report-{start,end}: payload-derivation` around `produce_payload` and
+//     `cycle-tracker-report-{start,end}: block-execution` around `execute_payload`. SP1 sums the
+//     cycles between matching markers across every iteration; those per-phase totals are read back
+//     by key ("payload-derivation", "block-execution") in `utils/host/src/stats.rs` and
+//     `validity/src/types.rs`. Because the markers bracket individual phases inside a single loop
+//     iteration, they cannot be reconstructed by wrapping a call to the upstream method.
+//   - `#[cfg(target_os = "zkvm")] std::mem::forget(block)` at the end of each iteration skips the
+//     per-block `Drop` to save proven cycles (guest memory is reclaimed when the proof ends).
+//   - Upstream's `self.safe_head_artifacts = Some((outcome, txs))` bookkeeping is omitted: it is
+//     never read in op-succinct, so we skip retaining it and move `outcome.header` into the cursor
+//     instead of cloning.
 /// Advances the derivation pipeline to the target block number.
 ///
 /// ## Takes
